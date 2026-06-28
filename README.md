@@ -1,53 +1,77 @@
-# claude-skill-lean
+# `/lean`
 
-`/lean` — the one command for context hygiene in [Claude Code](https://claude.com/claude-code).
+**Keep your Claude Code context lean. One command. No babysitting.**
 
-Long sessions fill up with waste: stale task history from a job you already finished, whole files you
-read when a few lines would do, schemas for MCP tools you never call, the same file read three times.
-Compacting *hides* that waste; it doesn't remove it.
+---
 
-`/lean` reads your current session and does the right thing:
+## TL;DR
 
-- **Mid-task** — names what's wasting the window and gives you the exact trim: `/mcp` to drop idle
-  tool servers, a narrower `Read`, or `/compact` if it's the same task and just long.
-- **Switching tasks** — saves anything durable first, then hands you `/clear`. A fresh session beats a
-  compacted one when the task has changed; the save step means you don't lose what mattered.
+By hour two, your Claude Code session is hauling a task you already finished, MCP servers you never
+called, and the same file read three times. You're paying for all of it, every turn.
 
-**North star: fewer tokens _wasted_, not fewer _used_.** Used tokens serve the task. The goal is to
-stop carrying the ones that don't.
+`/lean` finds the dead weight and tells you exactly what to cut. One word. On a task switch it saves
+what matters first, then hands you `/clear`.
+
+The goal isn't fewer tokens used. It's fewer tokens **wasted**.
+
+---
+
+## The problem
+
+Long sessions rot.
+
+You finish a task and its history just stays. You read a whole 1,800-line file when you needed four
+lines. You connect ten tool servers and use one. From then on, the model drags all of it through
+every single turn.
+
+`/compact` doesn't fix this. It summarizes the mess and keeps it. Lower token count, same garbage.
+You feel lean. You're not.
+
+## What it does
+
+You type `/lean`. It reads the session and picks the situation. You never choose a mode.
+
+**Still mid-task** — it names the waste and gives you the exact cut:
+
+- idle MCP servers → `/mcp` to drop them
+- a file you read whole → a tighter `Read`, or hand the search to a subagent so the dump never hits your window
+- same task, just long → `/compact` (the one time compacting is the right call)
+
+**Switching tasks** — a fresh session beats a compacted one. It saves anything durable first, then
+hands you `/clear`. You keep what mattered. You don't drag the old task into the new one.
 
 ## Why one command
 
-The first cut of this had three things to remember (`/lean`, a separate `/switch`, and `/clear`). Too
-many. `/clear` is Claude Code's own built-in — a skill can't wipe the window for you — so it stays.
-Everything else folds into `/lean`, which decides the situation itself. You remember one word.
+The first cut had three: `/lean`, a separate `/switch`, and `/clear`. I couldn't remember my own
+tool. So I cut it down.
+
+`/clear` is Claude Code's, not mine — a skill can't wipe your window, so that keystroke stays with
+you. Everything else folds into `/lean`. It decides. You remember one word.
 
 ## Install
-
-Clone anywhere and symlink into your Claude Code skills directory:
 
 ```bash
 git clone https://github.com/napiermd/claude-skill-lean.git
 ln -s "$(pwd)/claude-skill-lean" ~/.claude/skills/lean
 ```
 
-Optionally mirror it for [Codex](https://openai.com/codex):
+Mirror it for Codex if you run it:
 
 ```bash
 ln -s "$(pwd)/claude-skill-lean" ~/.codex/skills/lean
 ```
 
-Then run `/lean` in any session.
+Run `/lean`. Done.
 
-## How it works
+## What it won't do
 
-It reasons over the live session — which files were read (and whether a slice would have done), which
-MCP servers are connected but unused, whether the task has drifted, whether `/compact` already ran. It
-**can't see a live token count** (there's no API for it), so it ranks moves qualitatively and never
-invents a number.
-
-It is advisory by design on the one irreversible action: it will **never run `/clear` for you**.
+- **Guess your token count.** There's no API for live window size, so it reasons from what's actually
+  in the session — files read, servers connected, task drift — and never makes up a number.
+- **Clear for you.** Wiping the window is destructive and it's your call. It does the safe part —
+  saving what matters — and stops.
+- **Pad the list.** Two real cuts beat three to fill a slot. If your session is already clean, it
+  says so and shuts up.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. Take it, fork it, make it yours.
