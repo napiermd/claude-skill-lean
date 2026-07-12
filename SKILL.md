@@ -31,19 +31,27 @@ prep first:
 3. **Persist it.** If this install has file-based memory (a `# Memory` section in your system context),
    write the facts there following that system's conventions. Otherwise, put the where-we-left-off +
    next step in your reply so the user can paste it somewhere before clearing.
-4. **Commit learnings to GBrain too, when it's wired up** (gbrain MCP connected, or the `gbrain` CLI
+4. **Compact as you save.** Keep the auto-loaded memory index at most 60 lines and 6 KB total,
+   whichever limit hits first. Use one line per entry: pointer + retrieval hook, never memory content.
+   Clean in this order: delete wrong, obsolete, or duplicated memories; supersede dated session-log
+   entries by collapsing them into per-topic files and deleting the redundant entries; then, if still over
+   budget, evict only still-valid overflow — oldest still-valid dated entries first — to a non-auto-loaded
+   archive file, creating it if absent. Never archive wrong, obsolete, or duplicated memories.
+5. **Commit learnings to GBrain too, when it's wired up** (gbrain MCP connected, or the `gbrain` CLI
    works). File memory is the auto-loaded index; GBrain is the semantically searchable store — the
    thing that answers `gbrain search "<terms>" --source default` next month, from any repo. Write the
    SAME distilled facts (never a session dump): one page via `mcp__gbrain__put_page` (or
    `gbrain put-page`) titled by topic, plus `add_timeline_entry` for a dated decision/retro. Same
    filter bar as step 2 — if it didn't clear the bar for file memory, it doesn't go to GBrain. If
    GBrain isn't set up, skip silently; don't nag about installing it.
-5. Output the summary, then tell the user to run `/clear`. **Never run `/clear` yourself.**
+   For superseded facts, `mcp__gbrain__put_page` with the same title updates the existing page.
+6. Output the summary, then tell the user to run `/clear`. **Never run `/clear` yourself.**
 
 ```
 Saved:
 - <where> — <one-line hook>
 - gbrain: <page-title> — <one-line hook>   (only when GBrain is wired up)
+- Pruned: <n merged / evicted / deleted>   (only when compaction touched anything)
 
 Run `/clear` to start fresh.
 ```
@@ -78,5 +86,6 @@ line is not a move). Stop at the last move; nothing trails it.
 - Recommending a bare `/clear` without saving durable facts first.
 - Inventing a fact to look productive, or dumping the whole session into one note (file memory OR GBrain).
 - Writing to GBrain what you skipped for file memory — one filter bar, two destinations.
+- Append-only memory — saving without pruning.
 - A generic essay / 40-line audit; padding to three moves; trailing caveats after the last move.
 - Inventing a token number — there's no API for live window size; reason qualitatively.
