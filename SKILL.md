@@ -1,6 +1,7 @@
 ---
 name: lean
-description: The one command for context hygiene. Looks at the current session and does the right thing — mid-task, it names what's wasting the context window (idle tools, wide reads); on a task switch, it saves durable facts to memory and hands you `/clear`. Use when the user runs /lean, says the session feels bloated/heavy/slow, asks "should I clear or compact?", or is switching to an unrelated task. North star: fewer tokens WASTED, not fewer used.
+description: >-
+  The one command for context hygiene. Looks at the current session and does the right thing — mid-task, it names what's wasting the context window (idle tools, wide reads); on a task switch, it saves durable facts to memory and hands you `/clear`. Use when the user runs /lean, says the session feels bloated/heavy/slow, asks "should I clear or compact?", or is switching to an unrelated task. North star: fewer tokens WASTED, not fewer used.
 ---
 
 # Lean — the one context command
