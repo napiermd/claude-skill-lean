@@ -1,52 +1,53 @@
 # `/lean`
 
-**Keep your Claude Code context lean. One command. No babysitting.**
+**Save the terminal. Verify the checkpoint. Clear without losing your place.**
 
----
+`/lean` is the closeout command for a terminal session. It captures what happened, what is still
+running, what is blocked, and the exact next action; writes that handoff to Claude file memory and
+GBrain; reads both back; and only then says whether it is safe to run `/clear` or `/exit`.
 
-## TL;DR
+It has one job. An explicit `/lean` never turns into token advice, `/compact`, or an MCP cleanup
+audit because the work happens to be unfinished.
 
-By hour two, your Claude Code session is hauling a task you already finished, MCP servers you never
-called, and the same file read three times. You're paying for all of it, every turn.
+## The contract
 
-`/lean` finds the dead weight and tells you exactly what to cut. One word. On a task switch it saves
-what matters first, then hands you `/clear`.
+When you run `/lean`, it:
 
-The goal isn't fewer tokens used. It's fewer tokens **wasted**.
+1. builds a strict, constrained checkpoint;
+2. atomically writes a stable handoff per workstream under `lean-handoffs/` and updates a bounded
+   managed `MEMORY.md` pointer block;
+3. upserts `projects/<project>/lean-handoffs/<workstream>` in GBrain and records a timeline event;
+4. verifies both stores by read-back;
+5. emits a machine-readable `SAFE_TO_CLEAR` or `NOT_SAFE_TO_CLEAR` receipt.
 
----
+The default clear gate requires verified file memory and verified GBrain persistence. If either
+write fails or its read-back does not match the complete expected checkpoint, Lean tells you not to
+clear. A partial handoff remains available while you repair the failed store and rerun `/lean`.
 
-## The problem
+Active work is first-class state. Every recorded job includes its identifier, last-known status,
+working directory, poll command, and success signal so a new session can pick it up without guessing.
 
-Long sessions rot.
+## Safety and durability
 
-You finish a task and its history just stays. You read a whole 1,800-line file when you needed four
-lines. You connect ten tool servers and use one. From then on, the model drags all of it through
-every single turn.
+- Input is constrained by a versioned schema and a 64 KiB limit.
+- Unknown fields are rejected.
+- High-confidence credential, PHI, and prompt-injection patterns are rejected before any write.
+- The temporary checkpoint file can be consumed immediately after it is read.
+- Consumption is limited to private, current-user-owned `lean-checkpoint-*` files inside the system
+  temporary directory; arbitrary caller-selected paths are refused and retained.
+- File writes are atomic and private (`0600`).
+- Repeating the same checkpoint is idempotent and does not duplicate its timeline event.
+- Stable per-workstream pages preserve parallel terminal handoffs without timestamped transcript
+  dumps.
+- GBrain and file-memory receipts report attempted, verified, warning, and failed states separately.
 
-`/compact` doesn't fix this. It summarizes the mess and keeps it. Lower token count, same garbage.
-You feel lean. You're not.
+Lean never runs `/clear` or `/exit` itself. The destructive final keystroke stays with you.
 
-## What it does
+## Requirements
 
-You type `/lean`. It reads the session and picks the situation. You never choose a mode.
-
-**Still mid-task** — it names the waste and gives you the exact cut:
-
-- idle MCP servers → `/mcp` to drop them
-- a file you read whole → a tighter `Read`, or hand the search to a subagent so the dump never hits your window
-- same task, just long → `/compact` (the one time compacting is the right call)
-
-**Switching tasks** — a fresh session beats a compacted one. It saves anything durable first, then
-hands you `/clear`. You keep what mattered. You don't drag the old task into the new one.
-
-## Why one command
-
-The first cut had three: `/lean`, a separate `/switch`, and `/clear`. I couldn't remember my own
-tool. So I cut it down.
-
-`/clear` is Claude Code's, not mine — a skill can't wipe your window, so that keystroke stays with
-you. Everything else folds into `/lean`. It decides. You remember one word.
+- Python 3.10 or newer on macOS or Linux
+- `gbrain` available on `PATH`
+- Claude Code with local skills enabled
 
 ## Install
 
@@ -55,23 +56,40 @@ git clone https://github.com/napiermd/claude-skill-lean.git
 ln -s "$(pwd)/claude-skill-lean" ~/.claude/skills/lean
 ```
 
-Mirror it for Codex if you run it:
+Then invoke `/lean` when you are ready to checkpoint and close a terminal.
+
+The clear gate is Claude-specific: Codex does not natively auto-load Claude's project `MEMORY.md`,
+so a Codex context must not treat Lean's receipt as proof that Codex itself is safe to clear.
+
+## Verification helper
+
+The skill drives [`scripts/lean_closeout.py`](scripts/lean_closeout.py). The helper accepts a private
+JSON file conforming to [`references/checkpoint-schema.md`](references/checkpoint-schema.md), writes
+both durable stores, verifies them, and prints a JSON receipt. There is no file-only clearance mode:
+both stores and the auto-loaded memory pointer must verify before the receipt says it is safe.
+
+Run the test suite with:
 
 ```bash
-ln -s "$(pwd)/claude-skill-lean" ~/.codex/skills/lean
+python3 -m unittest discover -s tests -v
 ```
 
-Run `/lean`. Done.
+The tests use an isolated fake GBrain backend; they do not write to your real knowledge base.
 
-## What it won't do
+To verify the installed GBrain CLI against a disposable PGLite brain with a scrubbed environment and
+embeddings disabled:
 
-- **Guess your token count.** There's no API for live window size, so it reasons from what's actually
-  in the session — files read, servers connected, task drift — and never makes up a number.
-- **Clear for you.** Wiping the window is destructive and it's your call. It does the safe part —
-  saving what matters — and stops.
-- **Pad the list.** Two real cuts beat three to fill a slot. If your session is already clean, it
-  says so and shuts up.
+```bash
+LEAN_RUN_REAL_GBRAIN_E2E=1 python3 -m unittest tests/test_real_gbrain_e2e.py -v
+```
+
+## Failure behavior
+
+For a real write, exit status `0` means the requested persistence policy was verified. A dry run also
+returns `0`, but always carries `safe_to_clear: false` and must never be treated as clearance. Status
+`2` means the checkpoint failed validation. Status `3` means persistence did not meet the clear
+gate. In either failure case, the receipt remains explicit: `NOT_SAFE_TO_CLEAR`.
 
 ## License
 
-MIT. Take it, fork it, make it yours.
+MIT.
