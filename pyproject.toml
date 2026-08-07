@@ -1,0 +1,8 @@
+[project]
+name = "claude-skill-lean"
+version = "0.1.0.0"
+description = "Verified terminal closeout checkpoints for Claude Code"
+requires-python = ">=3.10"
+
+[tool.lean]
+test-command = "python3 -m unittest discover -s tests -v"

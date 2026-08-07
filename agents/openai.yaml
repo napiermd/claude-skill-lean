@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lean Closeout"
+  short_description: "Verify and save Claude Code before clearing"
+  default_prompt: "Use $lean to checkpoint this Claude Code terminal to Claude project memory and GBrain, verify the receipt, and tell me when it is safe to clear."
